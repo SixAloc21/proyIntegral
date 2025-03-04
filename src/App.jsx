@@ -8,6 +8,7 @@ import {
   doc,
   updateDoc
 } from "firebase/firestore";
+
 import { Bar } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -101,7 +102,7 @@ function App() {
         {users.map((user) => (
           <li key={user.id}>
             {user.name} - {user.age} años
-            <button onClick={() => { setName(user.name); setAge(user.age); setEditingId(user.id); }}>✏️</button>
+            <button onClick={() => { setName(user.name); setAge(user.age); setEditingId(user.id); }}>✏</button>
             <button onClick={() => deleteUser(user.id)}>🗑</button>
           </li>
         ))}
