@@ -6,7 +6,7 @@ import {
   getDocs,
   deleteDoc,
   doc,
-  updateDoc
+  updateDoc,
 } from "firebase/firestore";
 import { Bar } from "react-chartjs-2";
 import {
@@ -14,7 +14,7 @@ import {
   CategoryScale,
   LinearScale,
   BarElement,
-  Title
+  Title,
 } from "chart.js";
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, Title);
@@ -27,40 +27,63 @@ function App() {
 
   // Función para obtener los usuarios de Firebase Firestore
   const fetchUsers = async () => {
-    const querySnapshot = await getDocs(collection(db, "users"));
-    setUsers(querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
-  };
-
-  // Función para agregar un nuevo usuario a Firebase Firestore
-  const addUser = async () => {
-    if (name.trim() && age.trim()) {
-      await addDoc(collection(db, "users"), { name, age: Number(age) });
-      setName("");
-      setAge("");
-      fetchUsers();
+    try {
+      const querySnapshot = await getDocs(collection(db, "users"));
+      setUsers(querySnapshot.docs.map((doc) => ({ id: doc.id, ...doc.data() })));
+    } catch (error) {
+      console.error("Error al obtener los usuarios:", error);
     }
-  };
-
-  // Función para actualizar un usuario existente en Firebase Firestore
-  const updateUser = async () => {
-    if (editingId && name.trim() && age.trim()) {
-      await updateDoc(doc(db, "users", editingId), { name, age: Number(age) });
-      setEditingId(null);
-      setName("");
-      setAge("");
-      fetchUsers();
-    }
-  };
-
-  // Función para eliminar un usuario de Firebase Firestore
-  const deleteUser = async (id) => {
-    await deleteDoc(doc(db, "users", id));
-    fetchUsers();
   };
 
   useEffect(() => {
     fetchUsers();
   }, []);
+
+  // Función para agregar un nuevo usuario
+  const addUser = async () => {
+    if (!name.trim() || !age.trim()) {
+      alert("Por favor, completa todos los campos.");
+      return;
+    }
+    try {
+      await addDoc(collection(db, "users"), { name, age: Number(age) });
+      setName("");
+      setAge("");
+      await fetchUsers(); // Asegurar que se actualicen los datos
+    } catch (error) {
+      console.error("Error al agregar usuario:", error);
+    }
+  };
+
+  // Función para actualizar un usuario existente
+  const updateUser = async () => {
+    if (!editingId || !name.trim() || !age.trim()) {
+      alert("Por favor, completa todos los campos.");
+      return;
+    }
+    try {
+      await updateDoc(doc(db, "users", editingId), { name, age: Number(age) });
+      setEditingId(null);
+      setName("");
+      setAge("");
+      await fetchUsers(); // Asegurar que se actualicen los datos
+    } catch (error) {
+      console.error("Error al actualizar usuario:", error);
+    }
+  };
+
+  // Función para eliminar un usuario
+  const deleteUser = async (id) => {
+    const confirmDelete = window.confirm("¿Seguro que deseas eliminar este usuario?");
+    if (!confirmDelete) return;
+
+    try {
+      await deleteDoc(doc(db, "users", id));
+      await fetchUsers(); // Asegurar que se actualicen los datos
+    } catch (error) {
+      console.error("Error al eliminar usuario:", error);
+    }
+  };
 
   // Configuración de los datos para el gráfico de barras
   const chartData = {
@@ -77,6 +100,7 @@ function App() {
   return (
     <div style={{ textAlign: "center", marginTop: "50px" }}>
       <h1>CRUD con Firebase y Reportes</h1>
+
       {/* Formulario de entrada de datos */}
       <input
         type="text"
@@ -90,22 +114,33 @@ function App() {
         onChange={(e) => setAge(e.target.value)}
         placeholder="Edad"
       />
+
       {/* Botón para agregar o actualizar datos */}
       {editingId ? (
         <button onClick={updateUser}>Actualizar</button>
       ) : (
         <button onClick={addUser}>Agregar</button>
       )}
+
       {/* Lista de usuarios con botones de edición y eliminación */}
       <ul>
         {users.map((user) => (
           <li key={user.id}>
             {user.name} - {user.age} años
-            <button onClick={() => { setName(user.name); setAge(user.age); setEditingId(user.id); }}>✏️Editar</button>
+            <button
+              onClick={() => {
+                setName(user.name);
+                setAge(user.age.toString());
+                setEditingId(user.id);
+              }}
+            >
+              ✏️Editar
+            </button>
             <button onClick={() => deleteUser(user.id)}>🗑</button>
           </li>
         ))}
       </ul>
+
       <h2>Reporte de Edades</h2>
       {/* Gráfico de barras con los datos de los usuarios */}
       <Bar data={chartData} />
